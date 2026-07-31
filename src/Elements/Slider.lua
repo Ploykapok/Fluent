@@ -109,7 +109,8 @@ function Element:New(Idx, Config)
 		end
 	end)
 
-	Creator.AddSignal(SliderDot.InputEnded, function(Input)
+	-- แก้ไขให้ครอบคลุมการปล่อยเมาส์/นิ้วทั่วหน้าจอ ป้องกันปุ่มค้างเวลาลากหลุดขอบ
+	Creator.AddSignal(UserInputService.InputEnded, function(Input)
 		if
 			Input.UserInputType == Enum.UserInputType.MouseButton1
 			or Input.UserInputType == Enum.UserInputType.Touch
@@ -126,9 +127,13 @@ function Element:New(Idx, Config)
 				or Input.UserInputType == Enum.UserInputType.Touch
 			)
 		then
-			local SizeScale =
-				math.clamp((Input.Position.X - SliderRail.AbsolutePosition.X) / SliderRail.AbsoluteSize.X, 0, 1)
-			Slider:SetValue(Slider.Min + ((Slider.Max - Slider.Min) * SizeScale))
+			local RailAbsolutePosition = SliderRail.AbsolutePosition.X
+			local RailAbsoluteSize = SliderRail.AbsoluteSize.X
+			
+			if RailAbsoluteSize > 0 then
+				local SizeScale = math.clamp((Input.Position.X - RailAbsolutePosition) / RailAbsoluteSize, 0, 1)
+				Slider:SetValue(Slider.Min + ((Slider.Max - Slider.Min) * SizeScale))
+			end
 		end
 	end)
 
@@ -139,8 +144,11 @@ function Element:New(Idx, Config)
 
 	function Slider:SetValue(Value)
 		self.Value = Library:Round(math.clamp(Value, Slider.Min, Slider.Max), Slider.Rounding)
-		SliderDot.Position = UDim2.new((self.Value - Slider.Min) / (Slider.Max - Slider.Min), -7, 0.5, 0)
-		SliderFill.Size = UDim2.fromScale((self.Value - Slider.Min) / (Slider.Max - Slider.Min), 1)
+		local Range = Slider.Max - Slider.Min
+		local Scale = Range > 0 and ((self.Value - Slider.Min) / Range) or 0
+		
+		SliderDot.Position = UDim2.new(Scale, -7, 0.5, 0)
+		SliderFill.Size = UDim2.fromScale(Scale, 1)
 		SliderDisplay.Text = tostring(self.Value)
 
 		Library:SafeCallback(Slider.Callback, self.Value)
